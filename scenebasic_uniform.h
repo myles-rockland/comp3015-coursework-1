@@ -10,13 +10,27 @@
 #include <glm/gtc/matrix_transform.hpp>
 // Helper files
 #include "helper/torus.h"
+#include "helper/teapot.h"
+#include "helper/plane.h"
+#include "helper/objmesh.h"
+#include "helper/cube.h"
 
 class SceneBasic_Uniform : public Scene
 {
 private:
     GLSLProgram prog;
     glm::mat4 rotationMatrix;
-    Torus torus;
+
+    std::unique_ptr<ObjMesh> ogre;
+    //Plane plane;
+    //Torus torus;
+    //Teapot teapot;
+    //Cube cube;
+
+    
+    float tPrev;
+    float angle;
+    float rotSpeed;
 
     void compile();
 

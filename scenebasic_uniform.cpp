@@ -6,15 +6,23 @@
 #include <string>
 using std::string;
 
+#include <sstream>
 #include <iostream>
 using std::cerr;
 using std::endl;
 
 #include "helper/glutils.h"
+#include "helper/texture.h"
 
-using glm::vec3;
+using namespace glm;
 
-SceneBasic_Uniform::SceneBasic_Uniform() : torus(0.7f, 0.3f, 30, 30) {}
+SceneBasic_Uniform::SceneBasic_Uniform() : 
+    tPrev(0),
+    angle(0.0f),
+    rotSpeed(pi<float>()/8.0f)
+{
+    ogre = ObjMesh::load("media/bs_ears.obj", false, true);
+}
 
 void SceneBasic_Uniform::initScene()
 {
@@ -23,22 +31,26 @@ void SceneBasic_Uniform::initScene()
     glEnable(GL_DEPTH_TEST);
 
     model = glm::mat4(1.0f);
-    model = glm::rotate(model, glm::radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(15.0f), vec3(0.0f, 1.0f, 0.0f));
+    //model = glm::rotate(model, glm::radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
+    //model = glm::rotate(model, glm::radians(15.0f), vec3(0.0f, 1.0f, 0.0f));
 
-    view = glm::lookAt(vec3(0.0f, 0.0f, 2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(vec3(1.0f, 1.25f, 1.25f), vec3(0.0f, 0.2f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
 
     projection = glm::mat4(1.0f);
 
-    prog.setUniform("Light.Position", view * glm::vec4(5.0f, 5.0f, 2.0f, 1.0f));
-    prog.setUniform("Light.Ld", vec3(1.0f, 1.0f, 1.0f));
-    prog.setUniform("Light.La", vec3(0.4f, 0.4f, 0.4f));
-    prog.setUniform("Light.Ls", vec3(1.0f, 1.0f, 1.0f));
+    angle = 0.0f;
+    prog.setUniform("Light.L", vec3(1.0f));
+    prog.setUniform("Light.La", vec3(0.05f));
 
-    prog.setUniform("Material.Kd", vec3(0.2f, 0.55f, 0.9f));
-    prog.setUniform("Material.Ka", vec3(0.2f, 0.55f, 0.9f));
-    prog.setUniform("Material.Ks", vec3(0.8f, 0.8f, 0.8f));
-    prog.setUniform("Material.Shininess", 100.0f);
+    // Load textures first
+    GLuint diffTex = Texture::loadTexture("media/texture/ogre_diffuse.png");
+    GLuint normalTex = Texture::loadTexture("media/texture/ogre_normalmap.png");
+
+    // Set active texture unit and bind loaded texture ids to texture buffers
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, diffTex);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, normalTex);
 }
 
 void SceneBasic_Uniform::compile()
@@ -56,15 +68,41 @@ void SceneBasic_Uniform::compile()
 
 void SceneBasic_Uniform::update( float t )
 {
-	
+    float deltaT = t - tPrev;
+    if (tPrev == 0.0f)
+    {
+        deltaT = 0.0f;
+    }
+    tPrev = t;
+    angle += 0.1f * deltaT;
+    
+    if (this->m_animate)
+    {
+        angle += rotSpeed * deltaT;
+        if (angle > two_pi<float>())
+        {
+            angle -= two_pi<float>();
+        }
+    }
 }
 
 void SceneBasic_Uniform::render()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    vec3 cameraPos = vec3(-1.0f, 0.25f, 2.0f);
+    view = glm::lookAt(cameraPos, vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    prog.setUniform("Light.Position", view * vec4(10.0f * cos(angle), 0.0f, 10.0f * sin(angle), 1.0f));
+
+    prog.setUniform("Material.Kd", vec3(0.2f, 0.55f, 0.9f));
+    prog.setUniform("Material.Ks", vec3(0.95f, 0.95f, 0.95f));
+    prog.setUniform("Material.Ka", vec3(0.2f * 0.3f, 0.55f * 0.3f, 0.9f * 0.3f));
+    prog.setUniform("Material.Shininess", 100.0f);
+
+    model = mat4(1.0f);
+
     setMatrices();
-    torus.render();
+    ogre->render();
 }
 
 void SceneBasic_Uniform::resize(int w, int h)

@@ -2,52 +2,39 @@
 
 layout (location = 0) in vec3 VertexPosition;
 layout (location = 1) in vec3 VertexNormal;
+layout (location = 2) in vec2 VertexTexCoord;
+layout (location = 3) in vec4 VertexTangent;
 
-flat out vec3 LightIntensity;
+out vec3 LightDir;
+out vec3 ViewDir;
+out vec2 TexCoord;
+
 uniform struct LightInfo
 {
     vec4 Position;
-    vec3 Ld;
     vec3 La;
-    vec3 Ls;
+    vec3 L;
 } Light;
-
-uniform struct MaterialInfo
-{
-    vec3 Kd;
-    vec3 Ka;
-    vec3 Ks;
-    float Shininess;
-} Material;
 
 uniform mat4 ModelViewMatrix;
 uniform mat3 NormalMatrix;
 uniform mat4 MVP;
 
-void getCamSpaceValues(out vec3 norm, out vec3 position)
-{
-    norm = normalize(NormalMatrix * VertexNormal);
-    position = (ModelViewMatrix * vec4(VertexPosition, 1.0f)).xyz;
-}
-
 void main()
 {
-    vec3 n, pos;
-    getCamSpaceValues(n,pos);
+    vec3 normal = normalize(NormalMatrix * VertexNormal);
+    vec3 tangent = normalize(NormalMatrix * vec3(VertexTangent));
+    vec3 binormal = normalize(cross(normal, tangent)) * VertexTangent.w;
+    vec3 Position = (ModelViewMatrix * vec4(VertexPosition, 1.0f)).xyz;
 
-    vec3 ambient = Light.La * Material.Ka;
+    mat3 toObjectLocal = mat3(
+        tangent.x, binormal.x, normal.x,
+        tangent.y, binormal.y, normal.y,
+        tangent.z, binormal.z, normal.z
+    );
 
-    vec3 s = normalize(vec3(Light.Position) - pos);
-    float sDotN = max(dot(s, n), 0.0);
-    vec3 diffuse = Light.Ld * Material.Kd * sDotN;
-
-    vec3 specular = vec3(0.0);
-    if (sDotN>0.0)
-    {
-        vec3 v = normalize(-pos.xyz);
-        vec3 r = reflect(-s,n);
-        specular = Light.Ls * Material.Ks * pow(max(dot(r,v),0.0), Material.Shininess);
-    }
-    LightIntensity = diffuse + ambient + specular;
+    LightDir = toObjectLocal * (Light.Position.xyz - Position);
+    ViewDir = toObjectLocal * normalize(-Position);
+    TexCoord = VertexTexCoord;
     gl_Position = MVP * vec4(VertexPosition,1.0);
 }
