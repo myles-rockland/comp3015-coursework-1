@@ -21,7 +21,7 @@ private:
     GLSLProgram prog;
     glm::mat4 rotationMatrix;
 
-    std::unique_ptr<ObjMesh> ogre;
+    std::unique_ptr<ObjMesh> revolver;
     //Plane plane;
     //Torus torus;
     //Teapot teapot;

@@ -21,7 +21,7 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     angle(0.0f),
     rotSpeed(pi<float>()/8.0f)
 {
-    ogre = ObjMesh::load("media/bs_ears.obj", false, true);
+    revolver = ObjMesh::load("media/38-special-revolver/source/rev_anim.obj.obj", false, true);
 }
 
 void SceneBasic_Uniform::initScene()
@@ -30,27 +30,29 @@ void SceneBasic_Uniform::initScene()
 
     glEnable(GL_DEPTH_TEST);
 
+    // Set MVP matrices
     model = glm::mat4(1.0f);
-    //model = glm::rotate(model, glm::radians(-35.0f), vec3(1.0f, 0.0f, 0.0f));
-    //model = glm::rotate(model, glm::radians(15.0f), vec3(0.0f, 1.0f, 0.0f));
-
     view = glm::lookAt(vec3(1.0f, 1.25f, 1.25f), vec3(0.0f, 0.2f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-
     projection = glm::mat4(1.0f);
 
-    angle = 0.0f;
-    prog.setUniform("Light.L", vec3(1.0f));
-    prog.setUniform("Light.La", vec3(0.05f));
+    // Set light uniforms
+    prog.setUniform("Light.L", vec3(1.0f)); // Diffuse + Specular
+    prog.setUniform("Light.La", vec3(0.05f)); // Ambient
+
+    // Set fog uniforms
+    prog.setUniform("Fog.MaxDist", 50.0f);
+    prog.setUniform("Fog.MinDist", 1.0f);
+    prog.setUniform("Fog.Colour", vec3(0.5f));
 
     // Load textures first
-    GLuint diffTex = Texture::loadTexture("media/texture/ogre_diffuse.png");
-    GLuint normalTex = Texture::loadTexture("media/texture/ogre_normalmap.png");
+    GLuint diffuseTexture = Texture::loadTexture("media/38-special-revolver/textures/rev_d.tga.png");
+    GLuint normalTexture = Texture::loadTexture("media/38-special-revolver/textures/rev_n.tga.png");
 
     // Set active texture unit and bind loaded texture ids to texture buffers
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, diffTex);
+    glBindTexture(GL_TEXTURE_2D, diffuseTexture);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, normalTex);
+    glBindTexture(GL_TEXTURE_2D, normalTexture);
 }
 
 void SceneBasic_Uniform::compile()
@@ -90,9 +92,9 @@ void SceneBasic_Uniform::render()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    vec3 cameraPos = vec3(-1.0f, 0.25f, 2.0f);
+    vec3 cameraPos = vec3(-10.0f, 5.0f, 10.0f);
     view = glm::lookAt(cameraPos, vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-    prog.setUniform("Light.Position", view * vec4(10.0f * cos(angle), 0.0f, 10.0f * sin(angle), 1.0f));
+    prog.setUniform("Light.Position", view * vec4(100.0f * cos(angle), 0.0f, 100.0f * sin(angle), 1.0f));
 
     prog.setUniform("Material.Kd", vec3(0.2f, 0.55f, 0.9f));
     prog.setUniform("Material.Ks", vec3(0.95f, 0.95f, 0.95f));
@@ -100,9 +102,13 @@ void SceneBasic_Uniform::render()
     prog.setUniform("Material.Shininess", 100.0f);
 
     model = mat4(1.0f);
+    model = translate(model, vec3(0.0f, 0.0f, -5.0f));
+    model = rotate(model, radians(180.0f), vec3(0.0f, 1.0f, 0.0f));
+    model = rotate(model, radians(-90.0f), vec3(0.0f, 0.0f, 1.0f));
+    model = scale(model, vec3(0.1f));
 
     setMatrices();
-    ogre->render();
+    revolver->render();
 }
 
 void SceneBasic_Uniform::resize(int w, int h)
