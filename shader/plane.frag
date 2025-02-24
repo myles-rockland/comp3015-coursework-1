@@ -1,7 +1,5 @@
 #version 460
 
-in vec3 LightDir;
-in vec3 ViewDir;
 in vec3 Position;
 in vec3 Normal;
 
@@ -22,25 +20,22 @@ uniform struct MaterialInfo
     float Shininess;
 } Material;
 
-uniform mat4 ModelViewMatrix;
-uniform mat3 NormalMatrix;
-uniform mat4 MVP;
-
-vec3 blinnphong(vec3 n)
+vec3 blinnphong(vec3 position, vec3 n)
 {
+    vec3 ambient = vec3(0.0f), diffuse = vec3(0.0f), specular = vec3(0.0f);
+
     // Ambient
-    vec3 ambient = Light.La * Material.Ka;
+    ambient = Light.La * Material.Ka;
 
     // Diffuse
-    vec3 s = normalize(LightDir);
+    vec3 s = normalize(Light.Position.xyz - position);
     float sDotN = max(dot(s, n), 0.0);
-    vec3 diffuse = Material.Kd * sDotN;
+    diffuse = Material.Kd * sDotN;
 
     // Specular
-    vec3 specular = vec3(0.0f);
     if (sDotN > 0.0)
     {
-        vec3 v = normalize(ViewDir);
+        vec3 v = normalize(-position.xyz);
         vec3 h = normalize(v + s);
         specular = Material.Ks * pow(max(dot(h,n),0.0), Material.Shininess);
     }
@@ -49,5 +44,5 @@ vec3 blinnphong(vec3 n)
 }
 
 void main() {
-    FragColor = vec4(blinnphong(normalize(Normal)), 1.0);
+    FragColor = vec4(blinnphong(Position,normalize(Normal)), 1.0);
 }

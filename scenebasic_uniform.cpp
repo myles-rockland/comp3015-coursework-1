@@ -36,11 +36,17 @@ void SceneBasic_Uniform::initScene()
     view = glm::lookAt(vec3(1.0f, 1.25f, 1.25f), vec3(0.0f, 0.2f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
     projection = glm::mat4(1.0f);
 
-    // Set light uniforms
+    // Set light uniforms for gun shader programs
     gunProg.setUniform("Light.L", vec3(1.0f)); // Diffuse + Specular
-    gunProg.setUniform("Light.La", vec3(0.05f)); // Ambient
+    gunProg.setUniform("Light.La", vec3(0.5f)); // Ambient
+
+    // Set light uniforms for plane shader programs
+    planeProg.use();
+    planeProg.setUniform("Light.L", vec3(1.0f)); // Diffuse + Specular
+    planeProg.setUniform("Light.La", vec3(0.5f)); // Ambient
 
     // Set fog uniforms
+    gunProg.use();
     gunProg.setUniform("Fog.MaxDist", 10.0f);
     gunProg.setUniform("Fog.MinDist", 1.0f);
     gunProg.setUniform("Fog.Colour", vec3(0.5f));
@@ -149,21 +155,24 @@ void SceneBasic_Uniform::render()
     gun->render();
 
     // Plane rendering
-    //planeProg.use();
+    planeProg.use();
+
+    // Set light uniforms
+    planeProg.setUniform("Light.Position", view * vec4(100.0f * cos(angle), 0.0f, 100.0f * sin(angle), 1.0f));
 
     // Set plane material uniforms
-    //planeProg.setUniform("Material.Kd", vec3(0.5f, 0.5f, 0.5f));
-    //planeProg.setUniform("Material.Ks", vec3(0.0f, 0.0f, 0.0f));
-    //planeProg.setUniform("Material.Ka", vec3(0.1f, 0.1f, 0.1f));
-    //planeProg.setUniform("Material.Shininess", 1.0f);
+    planeProg.setUniform("Material.Kd", vec3(0.5f));
+    planeProg.setUniform("Material.Ks", vec3(0.0f));
+    planeProg.setUniform("Material.Ka", vec3(1.0f));
+    planeProg.setUniform("Material.Shininess", 1.0f);
 
     // Set plane model matrix
-    //model = mat4(1.0f);
-    //model = translate(model, vec3(0.0f, -10.0f, 0.0f));
+    model = mat4(1.0f);
+    model = translate(model, vec3(0.0f, -10.0f, 0.0f));
 
     // Set MVP matrix uniforms and render plane
-    //setMatrices(planeProg);
-    //plane.render();
+    setMatrices(planeProg);
+    plane.render();
 }
 
 void SceneBasic_Uniform::resize(int w, int h)
