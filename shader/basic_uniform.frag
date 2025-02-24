@@ -73,7 +73,7 @@ vec3 fog(vec3 n, vec3 bp)
 void main() {
     // Calculate normal direction from normal map texture
     vec3 norm = texture(NormalTexture, TexCoord).xyz;
-    norm.xy = 2.0f * norm.xy - 1.0f; // Minus 1 from a vec2??
+    norm.xy = 2.0f * norm.xy - 1.0f; // - 1.0f applies to each component in the vector! https://learnwebgl.brown37.net/12_shader_language/glsl_mathematical_operations.html
 
     // Calculate blinnphong
     vec3 bp = blinnphong(normalize(norm));

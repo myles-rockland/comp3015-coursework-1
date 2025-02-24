@@ -14,20 +14,23 @@
 #include "helper/plane.h"
 #include "helper/objmesh.h"
 #include "helper/cube.h"
+#include "helper/skybox.h"
 
 class SceneBasic_Uniform : public Scene
 {
 private:
-    GLSLProgram prog;
+    GLSLProgram gunProg;
+    GLSLProgram planeProg;
+    GLSLProgram skyboxProg;
     glm::mat4 rotationMatrix;
 
-    std::unique_ptr<ObjMesh> revolver;
-    //Plane plane;
+    std::unique_ptr<ObjMesh> gun;
+    Plane plane;
+    SkyBox skybox;
     //Torus torus;
     //Teapot teapot;
     //Cube cube;
 
-    
     float tPrev;
     float angle;
     float rotSpeed;
@@ -41,7 +44,7 @@ public:
     void update( float t );
     void render();
     void resize(int, int);
-    void setMatrices();
+    void setMatrices(GLSLProgram& p);
 };
 
 #endif // SCENEBASIC_UNIFORM_H
