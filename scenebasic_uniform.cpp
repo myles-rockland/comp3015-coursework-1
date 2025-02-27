@@ -14,13 +14,26 @@ using std::endl;
 #include "helper/glutils.h"
 #include "helper/texture.h"
 
+#include "GLFW/glfw3.h"
+#include "glad/glad.h"
+
 using namespace glm;
 
-SceneBasic_Uniform::SceneBasic_Uniform() : 
+SceneBasic_Uniform::SceneBasic_Uniform() :
     plane(100.0f, 100.0f, 1, 1),
     tPrev(0),
     angle(0.0f),
-    rotSpeed(pi<float>()/8.0f)
+    rotSpeed(pi<float>() / 8.0f),
+    cameraPosition(0.0f, 0.0f, 10.0f),
+    cameraForward(0.0f, 0.0f, 1.0f),
+    cameraUp(0.0f, 1.0f, 0.0f),
+    cameraYaw(-90.0f),
+    cameraPitch(0.0f),
+    cameraSpeed(5.0f),
+    cameraSensitivity(0.025f),
+    mouseFirstEntry(true),
+    lastXPos(width / 2.0f),
+    lastYPos(height / 2.0f)
 {
     gun = ObjMesh::load("media/38-special-revolver/source/rev_anim.obj.obj", false, true);
 }
@@ -28,6 +41,10 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
 void SceneBasic_Uniform::initScene()
 {
     compile();
+
+    // Hide the cursor
+    GLFWwindow* windowContext = glfwGetCurrentContext();
+    glfwSetInputMode(windowContext, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glEnable(GL_DEPTH_TEST);
 
@@ -134,16 +151,82 @@ void SceneBasic_Uniform::update( float t )
     tPrev = t;
     
     // Increase angle for rotation
-    if (this->m_animate)
+    angle += rotSpeed * deltaT;
+    if (angle >= two_pi<float>())
     {
-        angle += rotSpeed * deltaT;
-        if (angle >= two_pi<float>())
-        {
-            angle -= two_pi<float>();
-        }
+        angle -= two_pi<float>();
     }
 
     // Get keyboard input
+    GLFWwindow* windowContext = glfwGetCurrentContext();
+    if (glfwGetKey(windowContext, GLFW_KEY_W) == GLFW_PRESS)
+    {
+        cameraPosition += cameraSpeed * deltaT * cameraForward;
+    }
+    if (glfwGetKey(windowContext, GLFW_KEY_S) == GLFW_PRESS)
+    {
+        cameraPosition -= cameraSpeed * deltaT * cameraForward;
+    }
+    if (glfwGetKey(windowContext, GLFW_KEY_A) == GLFW_PRESS)
+    {
+        cameraPosition -= normalize(cross(cameraForward, cameraUp)) * cameraSpeed * deltaT;
+    }
+    if (glfwGetKey(windowContext, GLFW_KEY_D) == GLFW_PRESS)
+    {
+        cameraPosition += normalize(cross(cameraForward, cameraUp)) * cameraSpeed * deltaT;
+    }
+    if (glfwGetKey(windowContext, GLFW_KEY_SPACE) == GLFW_PRESS)
+    {
+        cameraPosition += cameraUp * cameraSpeed * deltaT;
+    }
+    if (glfwGetKey(windowContext, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+    {
+        cameraPosition -= cameraUp * cameraSpeed * deltaT;
+    }
+
+    // Get mouse input (movement)
+    double xpos = 0.0, ypos = 0.0;
+    glfwGetCursorPos(windowContext, &xpos, &ypos);
+    //Initially no last positions, so sets last positions to current positions
+    if (mouseFirstEntry)
+    {
+        lastXPos = (float)xpos;
+        lastYPos = (float)ypos;
+        mouseFirstEntry = false;
+    }
+
+    //Sets values for change in position since last frame to current frame
+    float xOffset = (float)xpos - lastXPos;
+    float yOffset = lastYPos - (float)ypos;
+
+    //Sets last positions to current positions for next frame
+    lastXPos = (float)xpos;
+    lastYPos = (float)ypos;
+
+    //Moderates the change in position based on sensitivity value
+    xOffset *= cameraSensitivity;
+    yOffset *= cameraSensitivity;
+
+    //Adjusts yaw & pitch values against changes in positions
+    cameraYaw += xOffset;
+    cameraPitch += yOffset;
+
+    //Prevents turning up & down beyond 90 degrees to look backwards
+    if (cameraPitch > 89.0f)
+    {
+        cameraPitch = 89.0f;
+    }
+    else if (cameraPitch < -89.0f)
+    {
+        cameraPitch = -89.0f;
+    }
+
+    //Modification of direction vector based on mouse turning
+    vec3 direction;
+    direction.x = cos(radians(cameraYaw)) * cos(radians(cameraPitch));
+    direction.y = sin(radians(cameraPitch));
+    direction.z = sin(radians(cameraYaw)) * cos(radians(cameraPitch));
+    cameraForward = normalize(direction);
 }
 
 void SceneBasic_Uniform::render()
@@ -152,8 +235,7 @@ void SceneBasic_Uniform::render()
 
     // Set camera position and view matrix
     //vec3 cameraPos = vec3(15.0f * sin(angle), 10.0f, 15.0f * cos(angle));
-    vec3 cameraPos = vec3(7.5f, 5.0f, 7.5f);
-    view = glm::lookAt(cameraPos, vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
+    view = lookAt(cameraPosition, cameraPosition + cameraForward, cameraUp);
     mat3 normalMatrix = mat3(vec3(view[0]), vec3(view[1]), vec3(view[2]));
 
     // Set spotlight uniforms
@@ -201,7 +283,7 @@ void SceneBasic_Uniform::render()
     model = translate(model, vec3(0.0f, 0.0f, -5.0f));
     model = rotate(model, radians(180.0f), vec3(0.0f, 1.0f, 0.0f));
     model = rotate(model, radians(-90.0f), vec3(0.0f, 0.0f, 1.0f));
-    model = scale(model, vec3(0.1f));
+    model = scale(model, vec3(0.05f));
 
     // Set MVP matrix uniforms and render gun
     setMatrices(gunProg);

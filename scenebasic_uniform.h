@@ -35,6 +35,24 @@ private:
     float angle;
     float rotSpeed;
 
+    //vec3 cameraFront;
+    //vec3 cameraUp;
+
+    // Mouse variables
+    glm::vec3 cameraPosition; // Relative position within world space
+    glm::vec3 cameraForward; // Forwards direction of travel
+    glm::vec3 cameraUp; // Up direction within world space
+    float cameraYaw; // Camera sideways rotation
+    float cameraPitch; // Camera vertical rotation
+    float cameraSpeed;
+    const float cameraSensitivity; // Mouse sensitivity
+
+    bool mouseFirstEntry; // Determines if first entry of mouse into window
+
+    //Positions of camera from given last frame
+    float lastXPos;
+    float lastYPos;
+
     void compile();
 
 public:
