@@ -24,6 +24,8 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     tPrev(0),
     angle(0.0f),
     rotSpeed(pi<float>() / 8.0f),
+    alphaMapEnabled(true),
+    whiteLightsEnabled(true),
     cameraPosition(0.0f, 0.0f, 10.0f),
     cameraForward(0.0f, 0.0f, 1.0f),
     cameraUp(0.0f, 1.0f, 0.0f),
@@ -56,20 +58,20 @@ void SceneBasic_Uniform::initScene()
     // Set spotlights ambient diffuse specular uniforms
     // Gun program
     gunProg.use();
-    gunProg.setUniform("Spotlights[0].La", vec3(0.2f, 0.0f, 0.0f)); //0.2, 0, 0
-    gunProg.setUniform("Spotlights[0].L", vec3(0.8f, 0.0f, 0.0f)); //0.8, 0, 0
-    gunProg.setUniform("Spotlights[1].La", vec3(0.0f, 0.2f, 0.0f)); //0, 0.2, 0
-    gunProg.setUniform("Spotlights[1].L", vec3(0.0f, 0.8f, 0.0f)); //0, 0.8, 0
-    gunProg.setUniform("Spotlights[2].La", vec3(0.0f, 0.0f, 0.2f)); //0, 0, 0.2
-    gunProg.setUniform("Spotlights[2].L", vec3(0.0f, 0.0f, 0.8f)); //0, 0, 0.8
+    gunProg.setUniform("Spotlights[0].La", vec3(0.2f)); //0.2, 0, 0
+    gunProg.setUniform("Spotlights[0].L", vec3(0.33f)); //0.8, 0, 0
+    gunProg.setUniform("Spotlights[1].La", vec3(0.2f)); //0, 0.2, 0
+    gunProg.setUniform("Spotlights[1].L", vec3(0.33f)); //0, 0.8, 0
+    gunProg.setUniform("Spotlights[2].La", vec3(0.2f)); //0, 0, 0.2
+    gunProg.setUniform("Spotlights[2].L", vec3(0.33f)); //0, 0, 0.8
     // Plane program
     planeProg.use();
-    planeProg.setUniform("Spotlights[0].La", vec3(0.2f, 0.0f, 0.0f)); //0.2, 0, 0
-    planeProg.setUniform("Spotlights[0].L", vec3(0.8f, 0.0f, 0.0f)); //0.8, 0, 0
-    planeProg.setUniform("Spotlights[1].La", vec3(0.0f, 0.2f, 0.0f)); //0, 0.2, 0
-    planeProg.setUniform("Spotlights[1].L", vec3(0.0f, 0.8f, 0.0f)); //0, 0.8, 0
-    planeProg.setUniform("Spotlights[2].La", vec3(0.0f, 0.0f, 0.2f)); //0, 0, 0.2
-    planeProg.setUniform("Spotlights[2].L", vec3(0.0f, 0.0f, 0.8f)); //0, 0, 0.8
+    planeProg.setUniform("Spotlights[0].La", vec3(0.2f)); //0.2, 0, 0
+    planeProg.setUniform("Spotlights[0].L", vec3(0.33f)); //0.8, 0, 0
+    planeProg.setUniform("Spotlights[1].La", vec3(0.2f)); //0, 0.2, 0
+    planeProg.setUniform("Spotlights[1].L", vec3(0.33f)); //0, 0.8, 0
+    planeProg.setUniform("Spotlights[2].La", vec3(0.2f)); //0, 0, 0.2
+    planeProg.setUniform("Spotlights[2].L", vec3(0.33f)); //0, 0, 0.8
 
     // Set spotlights exponent uniforms
     for (int i = 0; i < 3; i++)
@@ -240,32 +242,78 @@ void SceneBasic_Uniform::update( float t )
 
     // Get keyboard input
     GLFWwindow* windowContext = glfwGetCurrentContext();
-    if (glfwGetKey(windowContext, GLFW_KEY_W) == GLFW_PRESS)
+    if (glfwGetKey(windowContext, GLFW_KEY_W) == GLFW_PRESS) // Move forwards
     {
         cameraPosition += cameraSpeed * deltaT * cameraForward;
     }
-    if (glfwGetKey(windowContext, GLFW_KEY_S) == GLFW_PRESS)
+    if (glfwGetKey(windowContext, GLFW_KEY_S) == GLFW_PRESS) // Move backwards
     {
         cameraPosition -= cameraSpeed * deltaT * cameraForward;
     }
-    if (glfwGetKey(windowContext, GLFW_KEY_A) == GLFW_PRESS)
+    if (glfwGetKey(windowContext, GLFW_KEY_A) == GLFW_PRESS) // Move left
     {
         cameraPosition -= normalize(cross(cameraForward, cameraUp)) * cameraSpeed * deltaT;
     }
-    if (glfwGetKey(windowContext, GLFW_KEY_D) == GLFW_PRESS)
+    if (glfwGetKey(windowContext, GLFW_KEY_D) == GLFW_PRESS) // Move right
     {
         cameraPosition += normalize(cross(cameraForward, cameraUp)) * cameraSpeed * deltaT;
     }
-    if (glfwGetKey(windowContext, GLFW_KEY_SPACE) == GLFW_PRESS)
+    if (glfwGetKey(windowContext, GLFW_KEY_SPACE) == GLFW_PRESS) // Move up
     {
         cameraPosition += cameraUp * cameraSpeed * deltaT;
     }
-    if (glfwGetKey(windowContext, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+    if (glfwGetKey(windowContext, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) // Move down
     {
         cameraPosition -= cameraUp * cameraSpeed * deltaT;
     }
+    if (glfwGetKey(windowContext, GLFW_KEY_1) == GLFW_PRESS) // Toggle alpha map
+    {
+        alphaMapEnabled = !alphaMapEnabled;
+    }
+    if (glfwGetKey(windowContext, GLFW_KEY_2) == GLFW_PRESS) // Toggle rgb/white lights
+    {
+        whiteLightsEnabled = !whiteLightsEnabled;
+        if (whiteLightsEnabled)
+        {
+            // Gun program
+            gunProg.use();
+            gunProg.setUniform("Spotlights[0].La", vec3(0.1f)); //0.2, 0, 0
+            gunProg.setUniform("Spotlights[0].L", vec3(0.33f)); //0.8, 0, 0
+            gunProg.setUniform("Spotlights[1].La", vec3(0.1f)); //0, 0.2, 0
+            gunProg.setUniform("Spotlights[1].L", vec3(0.33f)); //0, 0.8, 0
+            gunProg.setUniform("Spotlights[2].La", vec3(0.1f)); //0, 0, 0.2
+            gunProg.setUniform("Spotlights[2].L", vec3(0.33f)); //0, 0, 0.8
+            // Plane program
+            planeProg.use();
+            planeProg.setUniform("Spotlights[0].La", vec3(0.1f)); //0.2, 0, 0
+            planeProg.setUniform("Spotlights[0].L", vec3(0.33f)); //0.8, 0, 0
+            planeProg.setUniform("Spotlights[1].La", vec3(0.1f)); //0, 0.2, 0
+            planeProg.setUniform("Spotlights[1].L", vec3(0.33f)); //0, 0.8, 0
+            planeProg.setUniform("Spotlights[2].La", vec3(0.1f)); //0, 0, 0.2
+            planeProg.setUniform("Spotlights[2].L", vec3(0.33f)); //0, 0, 0.8
+        }
+        else
+        {
+            // Gun program
+            gunProg.use();
+            gunProg.setUniform("Spotlights[0].La", vec3(0.2f, 0.0f, 0.0f)); //0.2, 0, 0
+            gunProg.setUniform("Spotlights[0].L", vec3(0.8f, 0.0f, 0.0f)); //0.8, 0, 0
+            gunProg.setUniform("Spotlights[1].La", vec3(0.0f, 0.2f, 0.0f)); //0, 0.2, 0
+            gunProg.setUniform("Spotlights[1].L", vec3(0.0f, 0.8f, 0.0f)); //0, 0.8, 0
+            gunProg.setUniform("Spotlights[2].La", vec3(0.0f, 0.0f, 0.2f)); //0, 0, 0.2
+            gunProg.setUniform("Spotlights[2].L", vec3(0.0f, 0.0f, 0.8f)); //0, 0, 0.8
+            // Plane program
+            planeProg.use();
+            planeProg.setUniform("Spotlights[0].La", vec3(0.2f, 0.0f, 0.0f)); //0.2, 0, 0
+            planeProg.setUniform("Spotlights[0].L", vec3(0.8f, 0.0f, 0.0f)); //0.8, 0, 0
+            planeProg.setUniform("Spotlights[1].La", vec3(0.0f, 0.2f, 0.0f)); //0, 0.2, 0
+            planeProg.setUniform("Spotlights[1].L", vec3(0.0f, 0.8f, 0.0f)); //0, 0.8, 0
+            planeProg.setUniform("Spotlights[2].La", vec3(0.0f, 0.0f, 0.2f)); //0, 0, 0.2
+            planeProg.setUniform("Spotlights[2].L", vec3(0.0f, 0.0f, 0.8f)); //0, 0, 0.8
+        }
+    }
 
-    // Get mouse input (movement)
+    // Get cursor position for camera movement
     double xpos = 0.0, ypos = 0.0;
     glfwGetCursorPos(windowContext, &xpos, &ypos);
     //Initially no last positions, so sets last positions to current positions
@@ -446,6 +494,9 @@ void SceneBasic_Uniform::drawScene()
 
     // Gun rendering
     gunProg.use();
+
+    // Set toggle uniforms
+    gunProg.setUniform("AlphaMapEnabled", alphaMapEnabled);
 
     // Set material uniforms
     gunProg.setUniform("Material.Kd", vec3(0.2f, 0.55f, 0.9f));

@@ -38,8 +38,8 @@ uniform float PixOffset[10] = float[](0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.
 uniform float Weight[10];
 
 uniform float AveLum;
-uniform float Exposure = 0.35;
-uniform float White = 0.928;
+uniform float Exposure = 0.1; //0.35
+uniform float White = 0.928; //0.928
 
 uniform mat3 rgb2xyz = mat3(
     0.4142564, 0.2126729, 0.0193339,
@@ -52,6 +52,8 @@ uniform mat3 xyz2rgb = mat3(
     -1.5371385, 1.8760108, -0.2040259,
     -0.4985314, 0.0415560, 1.0572252
 );
+
+uniform bool AlphaMapEnabled;
 
 float luminance(vec3 colour)
 {
@@ -69,7 +71,7 @@ vec3 blinnphongSpot(vec3 n, int lightIndex)
     ambient = Spotlights[lightIndex].La * texColour;
 
     // Diffuse
-    vec3 s = normalize(Spotlights[lightIndex].Position.xyz); //vec3 s = normalize(Spot.Position - position);
+    vec3 s = normalize(Spotlights[lightIndex].Position.xyz - Position);
 
     float cosAngle = dot(-s, normalize(Spotlights[lightIndex].Direction));
     float angle = acos(cosAngle);
@@ -105,7 +107,7 @@ vec4 pass1()
     // Discard using alpha map
     vec4 alphaMap = texture(AlphaTexture, TexCoord);
 
-    if (alphaMap.a < 0.15f)
+    if (AlphaMapEnabled && alphaMap.a < 0.15f)
     {
         discard;
     }
@@ -145,7 +147,7 @@ vec4 pass2()
     }
 }
 
-// Pass 3 is doing some summation and texture sampling of the first blur texture...
+// Pass 3 is applying blur in y direction
 vec4 pass3()
 {
     float dy = 1.0 / (textureSize(BlurTex1, 0)).y;
@@ -158,7 +160,7 @@ vec4 pass3()
     return sum;
 }
 
-// Pass 4 is doing some summation and texture sampling of the second blur texture...
+// Pass 4 is applying blur in x direction
 vec4 pass4()
 {
     float dx = 1.0 / (textureSize(BlurTex2, 0)).x;
@@ -175,12 +177,13 @@ vec4 pass5()
 {
     /////////////// Tone mapping ///////////////
     // Retrieve high-res color from texture
-    vec4 color = texture( HdrTex, TexCoord );
+    //vec4 color = texture(HdrTex, TexCoord);
+    vec4 color = texture(HdrTex, TexCoord) + texture(BlurTex1, TexCoord);
 
-    // Convert to XYZ
+    // Convert from RGB to CIE XYZ
     vec3 xyzCol = rgb2xyz * vec3(color);
 
-    // Convert to xyY
+    // Convert from XYZ to xyY
     float xyzSum = xyzCol.x + xyzCol.y + xyzCol.z;
     vec3 xyYCol = vec3( xyzCol.x / xyzSum, xyzCol.y / xyzSum, xyzCol.y);
 
@@ -199,11 +202,12 @@ vec4 pass5()
     ///////////// Combine with blurred texture /////////////
     // We want linear filtering on this texture access so that
     // we get additional blurring.
-    vec4 blurTex = texture(BlurTex1, TexCoord);
-    return toneMapColor + blurTex;
+    //vec4 blurTex = texture(BlurTex1, TexCoord);
+    //return toneMapColor + blurTex;
+    return toneMapColor;
 }
 
-float Gamma = 2.2f;
+float Gamma = 2.2f; //2.2f
 
 void main() {
     if (Pass == 1) FragColor = pass1();

@@ -39,8 +39,8 @@ private:
     float angle;
     float rotSpeed;
 
-    //vec3 cameraFront;
-    //vec3 cameraUp;
+    bool alphaMapEnabled;
+    bool whiteLightsEnabled;
 
     // Mouse variables
     glm::vec3 cameraPosition; // Relative position within world space
