@@ -49,9 +49,9 @@ void SceneBasic_Uniform::initScene()
     glEnable(GL_DEPTH_TEST);
 
     // Set MVP matrices
-    model = glm::mat4(1.0f);
-    view = glm::lookAt(vec3(1.0f, 1.25f, 1.25f), vec3(0.0f, 0.2f, 0.0f), vec3(0.0f, 1.0f, 0.0f));
-    projection = glm::mat4(1.0f);
+    model = mat4(1.0f);
+    view = mat4(1.0f);
+    projection = mat4(1.0f);
 
     // Set spotlights ambient diffuse specular uniforms
     // Gun program
@@ -102,16 +102,97 @@ void SceneBasic_Uniform::initScene()
     GLuint skyboxTexture = Texture::loadHdrCubeMap("media/space_skybox/space");
 
     // Set active texture unit and bind loaded texture ids to texture buffers
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, diffuseTexture);
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D, normalTexture);
-    glActiveTexture(GL_TEXTURE2);
+    glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_2D, alphaTexture);
     
     // Set texture unit to 0 and bind cubemap
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+
+    // Setup FBO
+    setupFBO();
+
+    // Array for full-screen quad
+    GLfloat verts[] = {
+    -1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+    -1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f
+    };
+
+    GLfloat tc[] = {
+    0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+    0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f
+    };
+
+    // Set up the buffers
+    unsigned int handle[2];
+    glGenBuffers(2, handle);
+    glBindBuffer(GL_ARRAY_BUFFER, handle[0]);
+    glBufferData(GL_ARRAY_BUFFER, 6 * 3 * sizeof(float), verts, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, handle[1]);
+    glBufferData(GL_ARRAY_BUFFER, 6 * 2 * sizeof(float), tc, GL_STATIC_DRAW);
+
+    // Set up the vertex array object
+    glGenVertexArrays(1, &fsQuad);
+    glBindVertexArray(fsQuad);
+    glBindBuffer(GL_ARRAY_BUFFER, handle[0]);
+    glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0); // Vertex position
+    glBindBuffer(GL_ARRAY_BUFFER, handle[1]);
+    glVertexAttribPointer((GLuint)2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(2); // Texture coordinates
+    glBindVertexArray(0);
+
+    // Set luminance threshold
+    gunProg.use();
+    gunProg.setUniform("LumThresh", 1.7f);
+
+    // Compute and sum the weights
+    float weights[10], sum, sigma2 = 25.0f;
+    weights[0] = gauss(0, sigma2);
+    sum = weights[0];
+    for (int i = 1; i < 10; i++) {
+        weights[i] = gauss(float(i), sigma2);
+        sum += 2 * weights[i];
+    }
+
+    // Normalize the weights and set the uniform
+    for (int i = 0; i < 10; i++) {
+        std::stringstream uniName;
+        uniName << "Weight[" << i << "]";
+        float val = weights[i] / sum;
+        gunProg.use();
+        gunProg.setUniform(uniName.str().c_str(), val);
+    }
+
+    // Set up two sampler objects for linear and nearest filtering
+    GLuint samplers[2];
+    glGenSamplers(2, samplers);
+    linearSampler = samplers[0];
+    nearestSampler = samplers[1];
+    GLfloat border[] = { 0.0f,0.0f,0.0f,0.0f };
+
+    // Set up the nearest sampler
+    glSamplerParameteri(nearestSampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glSamplerParameteri(nearestSampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glSamplerParameteri(nearestSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(nearestSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glSamplerParameterfv(nearestSampler, GL_TEXTURE_BORDER_COLOR, border);
+
+    // Set up the linear sampler
+    glSamplerParameteri(linearSampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glSamplerParameteri(linearSampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameteri(linearSampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(linearSampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glSamplerParameterfv(linearSampler, GL_TEXTURE_BORDER_COLOR, border);
+
+    // We want nearest sampling except for the last pass.
+    glBindSampler(0, nearestSampler);
+    glBindSampler(1, nearestSampler);
+    glBindSampler(2, nearestSampler);
 }
 
 void SceneBasic_Uniform::compile()
@@ -231,11 +312,102 @@ void SceneBasic_Uniform::update( float t )
 
 void SceneBasic_Uniform::render()
 {
+    pass1();
+    computeLogAveLuminance();
+    pass2();
+    pass3();
+    pass4();
+    pass5();
+}
+
+void SceneBasic_Uniform::pass1() // Draw the scene normally
+{
+    gunProg.use();
+    gunProg.setUniform("Pass", 1);
+    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+    glViewport(0, 0, width, height);
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFbo);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+
+    view = lookAt(cameraPosition, cameraPosition + cameraForward, cameraUp);
+    projection = glm::perspective(glm::radians(70.0f), (float)width / height, 0.3f, 100.0f);
+
+    drawScene();
+}
+
+void SceneBasic_Uniform::pass2() // Draw the blur
+{
+    gunProg.use();
+    gunProg.setUniform("Pass", 2);
+    glBindFramebuffer(GL_FRAMEBUFFER, blurFbo);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex1, 0);
+    glViewport(0, 0, bloomBufWidth, bloomBufHeight);
+    glDisable(GL_DEPTH_TEST);
+
+    glClearColor(0, 0, 0, 0);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    model = mat4(1.0f);
+    view = mat4(1.0f);
+    projection = mat4(1.0f);
+
+    gunProg.use();
+    setMatrices(gunProg);
+    planeProg.use();
+    setMatrices(planeProg);
+
+    glBindVertexArray(fsQuad);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    //glBindVertexArray(0);
+}
+
+void SceneBasic_Uniform::pass3()
+{
+    gunProg.use();
+    gunProg.setUniform("Pass", 3);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex2, 0);
+
+    glBindVertexArray(fsQuad);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void SceneBasic_Uniform::pass4()
+{
+    gunProg.use();
+    gunProg.setUniform("Pass", 4);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex1, 0);
+
+    glBindVertexArray(fsQuad);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void SceneBasic_Uniform::pass5()
+{
+    gunProg.use();
+    gunProg.setUniform("Pass", 5);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+    glViewport(0, 0, width, height);
+
+    glBindSampler(1, linearSampler);
+    glBindVertexArray(fsQuad);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    //glBindVertexArray(0);
+    glBindSampler(1, nearestSampler);
+}
+
+void SceneBasic_Uniform::drawScene()
+{
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Set camera position and view matrix
-    //vec3 cameraPos = vec3(15.0f * sin(angle), 10.0f, 15.0f * cos(angle));
-    view = lookAt(cameraPosition, cameraPosition + cameraForward, cameraUp);
+    // Set normal matrix using view
     mat3 normalMatrix = mat3(vec3(view[0]), vec3(view[1]), vec3(view[2]));
 
     // Set spotlight uniforms
@@ -265,9 +437,12 @@ void SceneBasic_Uniform::render()
     skyboxProg.use();
 
     model = mat4(1.0f);
+    view = lookAt(vec3(0.0f), cameraForward, cameraUp); // For infinite skybox
 
     setMatrices(skyboxProg);
     skybox.render();
+
+    view = lookAt(cameraPosition, cameraPosition + cameraForward, cameraUp); // Back to normal
 
     // Gun rendering
     gunProg.use();
@@ -322,4 +497,81 @@ void SceneBasic_Uniform::setMatrices(GLSLProgram& p)
     p.setUniform("ModelViewMatrix", mv);
     p.setUniform("MVP", projection * mv);
     p.setUniform("NormalMatrix", glm::mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2])));
+}
+
+//sets up the fbo for rendering to a texture
+void SceneBasic_Uniform::setupFBO() {
+    // Generate and bind the framebuffer
+    glGenFramebuffers(1, &hdrFbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFbo);
+
+    // Create the texture object
+    glGenTextures(1, &hdrTex);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, hdrTex);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB32F, width, height);
+
+    // Bind the texture to the FBO
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, hdrTex, 0);
+
+    // Create the depth buffer
+    GLuint depthBuf;
+    glGenRenderbuffers(1, &depthBuf);
+    glBindRenderbuffer(GL_RENDERBUFFER, depthBuf);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+
+    // Bind the depth buffer to the FBO
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuf);
+
+    // Set the targets for the fragment output variables
+    GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
+    glDrawBuffers(1, drawBuffers);
+
+    // Create an FBO for the bright-pass filter and blur
+    glGenFramebuffers(1, &blurFbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, blurFbo);
+
+    // Create two texture objects to ping-pong for the bright-pass filter
+    // and the two-pass blur
+    bloomBufWidth = width / 8;
+    bloomBufHeight = height / 8;
+    glGenTextures(1, &tex1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, tex1);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB32F, bloomBufWidth, bloomBufHeight);
+    glActiveTexture(GL_TEXTURE2);
+    glGenTextures(1, &tex2);
+    glBindTexture(GL_TEXTURE_2D, tex2);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB32F, bloomBufWidth, bloomBufHeight);
+
+    // Bind tex1 to the FBO
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex1, 0);
+    glDrawBuffers(1, drawBuffers);
+
+    // Unbind the framebuffer, and revert to default framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void SceneBasic_Uniform::computeLogAveLuminance()
+{
+    int size = width * height;
+    std::vector<GLfloat> texData(size * 3);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, hdrTex);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, texData.data());
+    float sum = 0.0f;
+    for (int i = 0; i < size; i++)
+    {
+        float lum = dot(vec3(texData[i * 3 + 0], texData[i * 3 + 1], texData[i * 3 + 2]), vec3(0.2126f, 0.7152f, 0.0722f));
+        sum += logf(lum + 0.00001f);
+    }
+    gunProg.use();
+    gunProg.setUniform("AveLum", expf(sum / size));
+}
+
+float SceneBasic_Uniform::gauss(float x, float sigma2)
+{
+    double coeff = 1.0 / (two_pi<float>() * sigma2);
+    double exponent = -(x * x) / (2.0 * sigma2);
+    return (float)(coeff * exp(exponent));
 }

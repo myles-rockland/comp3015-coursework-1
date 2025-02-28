@@ -7,18 +7,9 @@ layout (location = 2) in vec2 VertexTexCoord;
 layout (location = 3) in vec4 VertexTangent;
 
 // Out variables
-out vec3 LightDir;
 out vec3 ViewDir;
 out vec2 TexCoord;
 out vec3 Position;
-
-// Uniforms
-uniform struct LightInfo
-{
-    vec4 Position;
-    vec3 La;
-    vec3 L;
-} Light;
 
 uniform mat4 ModelViewMatrix;
 uniform mat3 NormalMatrix;
@@ -40,7 +31,6 @@ void main()
     );
 
     // Get light direction and view direction in tangent space
-    LightDir = toObjectLocal * (Light.Position.xyz - Position);
     ViewDir = toObjectLocal * normalize(-Position);
 
     // Set TexCoord and gl_Position for next stage in pipeline (fragment shader)

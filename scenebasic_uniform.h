@@ -31,6 +31,10 @@ private:
     //Teapot teapot;
     //Cube cube;
 
+    GLuint fsQuad, hdrFbo, blurFbo, hdrTex, tex1, tex2;
+    GLuint linearSampler, nearestSampler;
+    int bloomBufWidth, bloomBufHeight;
+
     float tPrev;
     float angle;
     float rotSpeed;
@@ -54,6 +58,15 @@ private:
     float lastYPos;
 
     void compile();
+    void setupFBO();
+    void pass1();
+    void pass2();
+    void pass3();
+    void pass4();
+    void pass5();
+    void computeLogAveLuminance();
+    void drawScene();
+    float gauss(float, float);
 
 public:
     SceneBasic_Uniform();
