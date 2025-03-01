@@ -86,16 +86,16 @@ Applied to the result of pass 5 for the final image.
 
 ## Keyboard Scene/Animation Controls
 Keyboard input is checked in update function:
-Move Camera Around - WASD
-Toggle Alpha Map - 1
-Toggle RGB/White Lights - 2
-Toggle Bloom - 3
+- Move Camera Around - WASD
+- Toggle Alpha Map - 1
+- Toggle RGB/White Lights - 2
+- Toggle Bloom - 3
 
 ![Keyboard Inputs](./images/keyboard1.png)
 ![Keyboard Inputs](./images/keyboard2.png)
 
 ## Mouse Scene/Animation Controls
 Mouse input is checked in update function:
-Rotate Camera - Move Mouse Around
+- Rotate Camera - Move Mouse Around
 
 ![Mouse Input](./images/mouse.png)
