@@ -68,16 +68,16 @@ Applied in pass 5.
 
 ![HDR + Tone Mapping](./images/image_proc_tech1.png)
 
+### Gaussian Blur
+Applied in passes 3 and 4 for y and x directions respectively.
+
+![Gaussian Blur](./images/image_proc_tech3.png)
+
 ### Bloom
 Luminance checks done in pass 2, and blurring is applied additively in pass 5 with HDR.
 
 ![Luminance Checks](./images/image_proc_tech1.5.png)
 ![Additive Blurring](./images/image_proc_tech2.png)
-
-### Gaussian Blur
-Applied in passes 3 and 4 for y and x directions respectively.
-
-![Gaussian Blur](./images/image_proc_tech3.png)
 
 ### Gamma Correction
 Applied to the result of pass 5 for the final image.
