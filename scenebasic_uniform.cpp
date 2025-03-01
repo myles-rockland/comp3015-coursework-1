@@ -99,19 +99,19 @@ void SceneBasic_Uniform::initScene()
     // Set misc uniforms
     gunProg.use();
     gunProg.setUniform("LumThresh", 1.7f);
-    gunProg.setUniform("Exposure", 0.1f);
+    gunProg.setUniform("Exposure", 0.35f);
     gunProg.setUniform("White", 3.0f);
     gunProg.setUniform("Gamma", 2.2f);
     gunProg.setUniform("BloomEnabled", bloomEnabled);
     gunProg.setUniform("AlphaMapEnabled", alphaMapEnabled);
 
-    // Load textures first
+    // Load skybox texture
+    GLuint skyboxTexture = Texture::loadHdrCubeMap("media/desert_skybox/desert");
+
+    // Load regular textures
     GLuint diffuseTexture = Texture::loadTexture("media/38-special-revolver/textures/rev_d.tga.png");
     GLuint normalTexture = Texture::loadTexture("media/38-special-revolver/textures/rev_n.tga.png");
     GLuint alphaTexture = Texture::loadTexture("media/texture/dots_alpha.png");
-
-    // Load skybox texture
-    GLuint skyboxTexture = Texture::loadHdrCubeMap("media/space_skybox/space");
 
     // Set active texture unit and bind loaded texture ids to texture buffers
     glActiveTexture(GL_TEXTURE3);

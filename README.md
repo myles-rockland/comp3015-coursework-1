@@ -4,6 +4,7 @@ An OpenGL project utilizing a custom shading model implemented in GLSL, with cus
 This project has been written and tested using Visual Studio 2022 on a Windows 10 machine.
 
 Custom Revolver Model: https://sketchfab.com/3d-models/38-special-revolver-3246c31648204534a2c6d671fe38452e
+Skybox: https://polyhaven.com/a/qwantani_moon_noon
 
 The main files to look at are the following:
 - scenebasic_uniform.h + scenebasic_uniform.cpp
