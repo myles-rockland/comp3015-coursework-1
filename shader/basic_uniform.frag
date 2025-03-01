@@ -38,8 +38,12 @@ uniform float PixOffset[10] = float[](0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.
 uniform float Weight[10];
 
 uniform float AveLum;
-uniform float Exposure = 0.1; //0.35
-uniform float White = 0.928; //0.928
+uniform float Exposure;
+uniform float White;
+uniform float Gamma;
+
+uniform bool AlphaMapEnabled;
+uniform bool BloomEnabled;
 
 uniform mat3 rgb2xyz = mat3(
     0.4142564, 0.2126729, 0.0193339,
@@ -52,8 +56,6 @@ uniform mat3 xyz2rgb = mat3(
     -1.5371385, 1.8760108, -0.2040259,
     -0.4985314, 0.0415560, 1.0572252
 );
-
-uniform bool AlphaMapEnabled;
 
 float luminance(vec3 colour)
 {
@@ -175,10 +177,9 @@ vec4 pass4()
 
 vec4 pass5() 
 {
-    /////////////// Tone mapping ///////////////
+    // HDR + Tone Mapping
     // Retrieve high-res color from texture
-    //vec4 color = texture(HdrTex, TexCoord);
-    vec4 color = texture(HdrTex, TexCoord) + texture(BlurTex1, TexCoord);
+    vec4 color = texture(HdrTex, TexCoord);
 
     // Convert from RGB to CIE XYZ
     vec3 xyzCol = rgb2xyz * vec3(color);
@@ -199,15 +200,15 @@ vec4 pass5()
     // Convert back to RGB
     vec4 toneMapColor = vec4( xyz2rgb * xyzCol, 1.0);
 
-    ///////////// Combine with blurred texture /////////////
-    // We want linear filtering on this texture access so that
-    // we get additional blurring.
-    //vec4 blurTex = texture(BlurTex1, TexCoord);
-    //return toneMapColor + blurTex;
-    return toneMapColor;
-}
+    // Combine with blurred texture for Bloom
+    // We want linear filtering on this texture access so that we get additional blurring.
+    vec4 blurTex = texture(BlurTex1, TexCoord);
 
-float Gamma = 2.2f; //2.2f
+    if (BloomEnabled)
+        return toneMapColor + blurTex;
+    else
+        return toneMapColor;
+}
 
 void main() {
     if (Pass == 1) FragColor = pass1();

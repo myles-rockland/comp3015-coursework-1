@@ -41,6 +41,7 @@ private:
 
     bool alphaMapEnabled;
     bool whiteLightsEnabled;
+    bool bloomEnabled;
 
     // Mouse variables
     glm::vec3 cameraPosition; // Relative position within world space

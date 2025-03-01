@@ -26,6 +26,7 @@ SceneBasic_Uniform::SceneBasic_Uniform() :
     rotSpeed(pi<float>() / 8.0f),
     alphaMapEnabled(true),
     whiteLightsEnabled(true),
+    bloomEnabled(true),
     cameraPosition(0.0f, 0.0f, 10.0f),
     cameraForward(0.0f, 0.0f, 1.0f),
     cameraUp(0.0f, 1.0f, 0.0f),
@@ -95,6 +96,15 @@ void SceneBasic_Uniform::initScene()
         planeProg.setUniform(cutoffName.str().c_str(), radians(15.0f));
     }
 
+    // Set misc uniforms
+    gunProg.use();
+    gunProg.setUniform("LumThresh", 1.7f);
+    gunProg.setUniform("Exposure", 0.1f);
+    gunProg.setUniform("White", 3.0f);
+    gunProg.setUniform("Gamma", 2.2f);
+    gunProg.setUniform("BloomEnabled", bloomEnabled);
+    gunProg.setUniform("AlphaMapEnabled", alphaMapEnabled);
+
     // Load textures first
     GLuint diffuseTexture = Texture::loadTexture("media/38-special-revolver/textures/rev_d.tga.png");
     GLuint normalTexture = Texture::loadTexture("media/38-special-revolver/textures/rev_n.tga.png");
@@ -147,10 +157,6 @@ void SceneBasic_Uniform::initScene()
     glVertexAttribPointer((GLuint)2, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(2); // Texture coordinates
     glBindVertexArray(0);
-
-    // Set luminance threshold
-    gunProg.use();
-    gunProg.setUniform("LumThresh", 1.7f);
 
     // Compute and sum the weights
     float weights[10], sum, sigma2 = 25.0f;
@@ -312,6 +318,12 @@ void SceneBasic_Uniform::update( float t )
             planeProg.setUniform("Spotlights[2].L", vec3(0.0f, 0.0f, 0.8f)); //0, 0, 0.8
         }
     }
+    if (glfwGetKey(windowContext, GLFW_KEY_3) == GLFW_PRESS) // Toggle bloom
+    {
+        bloomEnabled = !bloomEnabled;
+        gunProg.use();
+        gunProg.setUniform("BloomEnabled", bloomEnabled);
+    }
 
     // Get cursor position for camera movement
     double xpos = 0.0, ypos = 0.0;
@@ -464,7 +476,7 @@ void SceneBasic_Uniform::drawScene()
         // Position
         std::stringstream positionName;
         positionName << "Spotlights[" << i << "].Position";
-        float x = 50.0f * sin(angle + (two_pi<float>() / 3) * i); // 100
+        float x = 50.0f * sin(angle + (two_pi<float>() / 3) * i);
         float z = 50.0f * cos(angle + (two_pi<float>() / 3) * i);
         vec4 lightPos = vec4(x, 20.0f, z, 1.0f);
         gunProg.use();
@@ -492,6 +504,23 @@ void SceneBasic_Uniform::drawScene()
 
     view = lookAt(cameraPosition, cameraPosition + cameraForward, cameraUp); // Back to normal
 
+    // Plane rendering
+    planeProg.use();
+
+    // Set plane material uniforms
+    planeProg.setUniform("Material.Kd", vec3(0.5f));
+    planeProg.setUniform("Material.Ks", vec3(0.0f));
+    planeProg.setUniform("Material.Ka", vec3(0.5f));
+    planeProg.setUniform("Material.Shininess", 1.0f);
+
+    // Set plane model matrix
+    model = mat4(1.0f);
+    model = translate(model, vec3(0.0f, -10.0f, 0.0f));
+
+    // Set MVP matrix uniforms and render plane
+    setMatrices(planeProg);
+    plane.render();
+
     // Gun rendering
     gunProg.use();
 
@@ -514,23 +543,6 @@ void SceneBasic_Uniform::drawScene()
     // Set MVP matrix uniforms and render gun
     setMatrices(gunProg);
     gun->render();
-
-    // Plane rendering
-    planeProg.use();
-
-    // Set plane material uniforms
-    planeProg.setUniform("Material.Kd", vec3(0.5f));
-    planeProg.setUniform("Material.Ks", vec3(0.0f));
-    planeProg.setUniform("Material.Ka", vec3(0.5f));
-    planeProg.setUniform("Material.Shininess", 1.0f);
-
-    // Set plane model matrix
-    model = mat4(1.0f);
-    model = translate(model, vec3(0.0f, -10.0f, 0.0f));
-
-    // Set MVP matrix uniforms and render plane
-    setMatrices(planeProg);
-    plane.render();
 }
 
 void SceneBasic_Uniform::resize(int w, int h)
