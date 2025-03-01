@@ -275,6 +275,8 @@ void SceneBasic_Uniform::update( float t )
     if (glfwGetKey(windowContext, GLFW_KEY_1) == GLFW_PRESS) // Toggle alpha map
     {
         alphaMapEnabled = !alphaMapEnabled;
+        gunProg.use();
+        gunProg.setUniform("AlphaMapEnabled", alphaMapEnabled);
     }
     if (glfwGetKey(windowContext, GLFW_KEY_2) == GLFW_PRESS) // Toggle rgb/white lights
     {
@@ -523,9 +525,6 @@ void SceneBasic_Uniform::drawScene()
 
     // Gun rendering
     gunProg.use();
-
-    // Set toggle uniforms
-    gunProg.setUniform("AlphaMapEnabled", alphaMapEnabled);
 
     // Set material uniforms
     gunProg.setUniform("Material.Kd", vec3(0.2f, 0.55f, 0.9f));
