@@ -60,19 +60,19 @@ void SceneBasic_Uniform::initScene()
     // Gun program
     gunProg.use();
     gunProg.setUniform("Spotlights[0].La", vec3(0.2f)); //0.2, 0, 0
-    gunProg.setUniform("Spotlights[0].L", vec3(0.33f)); //0.8, 0, 0
+    gunProg.setUniform("Spotlights[0].L", vec3(1.0f)); //0.8, 0, 0
     gunProg.setUniform("Spotlights[1].La", vec3(0.2f)); //0, 0.2, 0
-    gunProg.setUniform("Spotlights[1].L", vec3(0.33f)); //0, 0.8, 0
+    gunProg.setUniform("Spotlights[1].L", vec3(1.0f)); //0, 0.8, 0
     gunProg.setUniform("Spotlights[2].La", vec3(0.2f)); //0, 0, 0.2
-    gunProg.setUniform("Spotlights[2].L", vec3(0.33f)); //0, 0, 0.8
+    gunProg.setUniform("Spotlights[2].L", vec3(1.0f)); //0, 0, 0.8
     // Plane program
     planeProg.use();
     planeProg.setUniform("Spotlights[0].La", vec3(0.2f)); //0.2, 0, 0
-    planeProg.setUniform("Spotlights[0].L", vec3(0.33f)); //0.8, 0, 0
+    planeProg.setUniform("Spotlights[0].L", vec3(1.0f)); //0.8, 0, 0
     planeProg.setUniform("Spotlights[1].La", vec3(0.2f)); //0, 0.2, 0
-    planeProg.setUniform("Spotlights[1].L", vec3(0.33f)); //0, 0.8, 0
+    planeProg.setUniform("Spotlights[1].L", vec3(1.0f)); //0, 0.8, 0
     planeProg.setUniform("Spotlights[2].La", vec3(0.2f)); //0, 0, 0.2
-    planeProg.setUniform("Spotlights[2].L", vec3(0.33f)); //0, 0, 0.8
+    planeProg.setUniform("Spotlights[2].L", vec3(1.0f)); //0, 0, 0.8
 
     // Set spotlights exponent uniforms
     for (int i = 0; i < 3; i++)
@@ -100,7 +100,7 @@ void SceneBasic_Uniform::initScene()
     gunProg.use();
     gunProg.setUniform("LumThresh", 1.7f);
     gunProg.setUniform("Exposure", 0.35f);
-    gunProg.setUniform("White", 3.0f);
+    gunProg.setUniform("White", 0.982f);
     gunProg.setUniform("Gamma", 2.2f);
     gunProg.setUniform("BloomEnabled", bloomEnabled);
     gunProg.setUniform("AlphaMapEnabled", alphaMapEnabled);
@@ -285,20 +285,20 @@ void SceneBasic_Uniform::update( float t )
         {
             // Gun program
             gunProg.use();
-            gunProg.setUniform("Spotlights[0].La", vec3(0.1f)); //0.2, 0, 0
-            gunProg.setUniform("Spotlights[0].L", vec3(0.33f)); //0.8, 0, 0
-            gunProg.setUniform("Spotlights[1].La", vec3(0.1f)); //0, 0.2, 0
-            gunProg.setUniform("Spotlights[1].L", vec3(0.33f)); //0, 0.8, 0
-            gunProg.setUniform("Spotlights[2].La", vec3(0.1f)); //0, 0, 0.2
-            gunProg.setUniform("Spotlights[2].L", vec3(0.33f)); //0, 0, 0.8
+            gunProg.setUniform("Spotlights[0].La", vec3(0.2f)); //0.2, 0, 0
+            gunProg.setUniform("Spotlights[0].L", vec3(1.0f)); //0.8, 0, 0
+            gunProg.setUniform("Spotlights[1].La", vec3(0.2f)); //0, 0.2, 0
+            gunProg.setUniform("Spotlights[1].L", vec3(1.0f)); //0, 0.8, 0
+            gunProg.setUniform("Spotlights[2].La", vec3(0.2f)); //0, 0, 0.2
+            gunProg.setUniform("Spotlights[2].L", vec3(1.0f)); //0, 0, 0.8
             // Plane program
             planeProg.use();
-            planeProg.setUniform("Spotlights[0].La", vec3(0.1f)); //0.2, 0, 0
-            planeProg.setUniform("Spotlights[0].L", vec3(0.33f)); //0.8, 0, 0
-            planeProg.setUniform("Spotlights[1].La", vec3(0.1f)); //0, 0.2, 0
-            planeProg.setUniform("Spotlights[1].L", vec3(0.33f)); //0, 0.8, 0
-            planeProg.setUniform("Spotlights[2].La", vec3(0.1f)); //0, 0, 0.2
-            planeProg.setUniform("Spotlights[2].L", vec3(0.33f)); //0, 0, 0.8
+            planeProg.setUniform("Spotlights[0].La", vec3(0.2f)); //0.2, 0, 0
+            planeProg.setUniform("Spotlights[0].L", vec3(1.0f)); //0.8, 0, 0
+            planeProg.setUniform("Spotlights[1].La", vec3(0.2f)); //0, 0.2, 0
+            planeProg.setUniform("Spotlights[1].L", vec3(1.0f)); //0, 0.8, 0
+            planeProg.setUniform("Spotlights[2].La", vec3(0.2f)); //0, 0, 0.2
+            planeProg.setUniform("Spotlights[2].L", vec3(1.0f)); //0, 0, 0.8
         }
         else
         {

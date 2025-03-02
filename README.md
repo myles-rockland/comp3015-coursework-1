@@ -13,7 +13,7 @@ The main files to look at are the following:
 - skybox.vert + skybox.frag
 
 ## YouTube Video Walkthrough
-YouTube Video: [insert here]
+YouTube Video: https://youtu.be/GxqlXnPVXDg
 
 ## Basic Lighting - Blinnphong in Fragment Shader
 Seen in basic_uniform.frag as the blinnphongSpot function, which is adapted for spotlights.
